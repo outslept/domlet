@@ -4,7 +4,7 @@ export type Elem<K extends TagName> = HTMLElementTagNameMap[K]
 type LoosePartial<T> = { [K in keyof T]?: T[K] | undefined }
 
 export type DOMProps<E extends HTMLElement = HTMLElement> =
-  LoosePartial<Omit<E, "style" | "dataset" | "classList">> & {
+  LoosePartial<Omit<E, 'style' | 'dataset' | 'classList'>> & {
     style?: Partial<CSSStyleDeclaration>
     dataset?: Record<string, string | number | boolean>
     txt?: string
@@ -61,7 +61,7 @@ const patchProps = (prev: VNode, next: VNode): void => {
     const st = dict(el.style)
     const p = dict(ps)
     const n = dict(ns)
-    for (const k in p) if (!(k in n)) st[k] = ""
+    for (const k in p) if (!(k in n)) st[k] = ''
     for (const k in n) if (p[k] !== n[k]) st[k] = n[k]
   }
 
@@ -85,7 +85,7 @@ export const reconcile = (prev: VNode, next: VNode): VNode => {
   const m = Math.max(a.length, b.length)
 
   for (let i = 0; i < m; i++) {
-    const p = a[i], n = b[i]
+    const p = a[i]; const n = b[i]
     if (p && !n) {
       p().remove()
     } else if (!p && n) {
@@ -105,13 +105,13 @@ export const fromElement = <E extends HTMLElement>(
   props: DOMProps<E> = {},
   ...children: MaybeVNode[]
 ): VNode => Object.assign(
-  () => element,
-  {
-    tag: element.tagName.toLowerCase() as TagName,
-    props: props as DOMProps<HTMLElement>,
-    children: children.filter(Boolean) as VNode[],
-  }
-)
+    () => element,
+    {
+      tag: element.tagName.toLowerCase() as TagName,
+      props: props as DOMProps<HTMLElement>,
+      children: children.filter(Boolean) as VNode[],
+    }
+  )
 
 export const mount = (root: HTMLElement) => {
   let prev = fromElement(root)
