@@ -3,8 +3,8 @@
   "type": "module",
   "zshy": "src/index.ts",
   "scripts": {
-    "dev": "esbuild main.ts --bundle --format=esm --outdir=dist --sourcemap --watch --serve=3000 --servedir=.",
-    "build": "esbuild main.ts --bundle --format=esm --outdir=dist --minify --sourcemap=external",
+    "dev": "esbuild main.ts --bundle --format=esm --outdir=public --sourcemap --watch --serve=3000 --servedir=public",
+    "build": "esbuild main.ts --bundle --format=esm --outdir=public --minify --sourcemap=external",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix"
   },
