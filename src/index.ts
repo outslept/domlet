@@ -1,124 +1,160 @@
 export type TagName = keyof HTMLElementTagNameMap
 export type Elem<K extends TagName> = HTMLElementTagNameMap[K]
+export type Key = string | number
 
 type LoosePartial<T> = { [K in keyof T]?: T[K] | undefined }
 
 export type DOMProps<E extends HTMLElement = HTMLElement> =
-  LoosePartial<Omit<E, 'style' | 'dataset' | 'classList'>> & {
+  LoosePartial<Omit<E, 'style' | 'dataset' | 'classList' | 'children'>> & {
     style?: Partial<CSSStyleDeclaration>
     dataset?: Record<string, string | number | boolean>
-    txt?: string
+    txt?: string | number
+    key?: Key
   }
 
-export type VNode<K extends TagName = TagName> = (() => Elem<K>) & {
+export type VChild = VNode | string | number
+export type MaybeChild = VChild | null | undefined | false
+
+export type VNode<K extends TagName = TagName> = {
   tag: K
-  props: DOMProps<HTMLElement>
-  children: VNode[]
+  props: DOMProps<Elem<K>>
+  children: VChild[]
 }
 
-export type TypedVNode<K extends TagName> = VNode<K> & { props: DOMProps<Elem<K>> }
+type Instance = {
+  dom: Node
+  vnode: VChild
+  children: Instance[]
+}
 
-export type MaybeVNode = VNode | null | undefined | false
-
-// tag("div")({ ... }, children...)
 export const tag = <K extends TagName>(tagName: K) =>
-  (p: DOMProps<Elem<K>> = {}, ...c: MaybeVNode[]): TypedVNode<K> => {
-    const props = p && p.txt != null ? { ...p, textContent: p.txt } : p
-    const { style = {}, dataset = {}, txt: _drop, ...rest } = props
-    const children = c.filter(Boolean) as VNode[]
-
-    const render = ((element?: Elem<K>) => () => {
-      if (element) return element
-      const el = document.createElement(tagName) as Elem<K>
-      Object.assign(el, rest)
-      Object.assign(el.style, style)
-      for (const [k, v] of Object.entries(dataset)) el.dataset[k] = String(v)
-      for (const child of children) el.append(child())
-      return (element = el)
-    })()
-
-    return Object.assign(render, { tag: tagName, props, children })
+  (p: DOMProps<Elem<K>> = {}, ...c: MaybeChild[]): VNode<K> => {
+    const { style, dataset, txt, key, ...rest } = p
+    const children: VChild[] = []
+    if (txt !== undefined && txt !== null) children.push(typeof txt === 'number' ? txt : String(txt))
+    for (const ch of c) if (ch !== null && ch !== undefined && ch !== false) children.push(ch as VChild)
+    return { tag: tagName, props: { ...(rest as any), style, dataset, key }, children }
   }
 
+const isVNode = (x: VChild): x is VNode => typeof x === 'object' && x !== null && 'tag' in x
 const dict = <T extends object>(o: T) => o as unknown as Record<string, unknown>
 
-const patchProps = (prev: VNode, next: VNode): void => {
-  const el = prev()
-  const { style: ps = {}, dataset: pd = {}, txt: _ptxt, ...pp } = prev.props
-  const { style: ns = {}, dataset: nd = {}, txt: _ntxt, ...np } = next.props
+const patchProps = (el: HTMLElement, prev: DOMProps<HTMLElement> = {}, next: DOMProps<HTMLElement> = {}) => {
+  const { style: ps = {}, dataset: pd = {}, txt: _pt, key: _pk, ...pp } = prev
+  const { style: ns = {}, dataset: nd = {}, txt: _nt, key: _nk, ...np } = next
 
-  // plain props
   {
-    const tgt = dict(el)
-    const p = dict(pp)
-    const n = dict(np)
+    const tgt = dict(el); const p = dict(pp); const n = dict(np)
     for (const k in p) if (!(k in n)) tgt[k] = undefined
     for (const k in n) if (p[k] !== n[k]) tgt[k] = n[k]
   }
-
-  // style
   {
-    const st = dict(el.style)
-    const p = dict(ps)
-    const n = dict(ns)
+    const st = dict(el.style); const p = dict(ps); const n = dict(ns)
     for (const k in p) if (!(k in n)) st[k] = ''
     for (const k in n) if (p[k] !== n[k]) st[k] = n[k]
   }
-
-  // dataset
   for (const k in pd) if (!(k in nd)) delete el.dataset[k]
-  for (const k in nd) if (pd[k] !== nd[k]) el.dataset[k] = String(nd[k])
+  for (const k in nd) if (pd[k] !== nd[k]) el.dataset[k] = String(nd[k] as any)
 }
 
-export const reconcile = (prev: VNode, next: VNode): VNode => {
-  if (prev.tag !== next.tag) {
-    prev().replaceWith(next())
-    return next
+const createElement = (v: VNode): HTMLElement => {
+  const el = document.createElement(v.tag)
+  const { style = {}, dataset = {}, key: _k, ...rest } = v.props || {}
+  Object.assign(el, rest)
+  Object.assign(el.style, style)
+  for (const [k, val] of Object.entries(dataset)) el.dataset[k] = String(val)
+  return el
+}
+
+const commit = (parent: Node, prevInst: Instance | null, nextNode: VChild): Instance => {
+  if (!isVNode(nextNode)) {
+    if (prevInst && prevInst.dom.nodeType === Node.TEXT_NODE) {
+      const t = prevInst.dom as Text
+      const s = String(nextNode)
+      if (t.nodeValue !== s) t.nodeValue = s
+      prevInst.vnode = nextNode
+      prevInst.children = []
+      return prevInst
+    }
+    const dom = document.createTextNode(String(nextNode))
+    return { dom, vnode: nextNode, children: [] }
   }
 
-  patchProps(prev, next)
+  if (!prevInst || prevInst.dom.nodeType === Node.TEXT_NODE || !isVNode(prevInst.vnode) || prevInst.vnode.tag !== nextNode.tag) {
+    const el = createElement(nextNode)
+    const childInstances = nextNode.children.map(ch => {
+      const ci = commit(el, null, ch)
+      el.appendChild(ci.dom)
+      return ci
+    })
+    return { dom: el, vnode: nextNode, children: childInstances }
+  }
 
-  const el = prev()
-  const a = prev.children
-  const b = next.children
-  const children: VNode[] = []
-  const m = Math.max(a.length, b.length)
+  const el = prevInst.dom as HTMLElement
+  patchProps(el, (prevInst.vnode as VNode).props as any, nextNode.props as any)
+  prevInst.children = reconcileChildren(el, prevInst.children, nextNode.children)
+  prevInst.vnode = nextNode
+  return prevInst
+}
 
-  for (let i = 0; i < m; i++) {
-    const p = a[i]; const n = b[i]
-    if (p && !n) {
-      p().remove()
-    } else if (!p && n) {
-      el.append(n()); children.push(n)
-    } else if (p!.tag !== n!.tag) {
-      p!().replaceWith(n!()); children.push(n!)
+const getKey = (c: VChild): Key | undefined => (isVNode(c) ? c.props?.key : undefined)
+const keyOf = (i: Instance): Key | undefined => (isVNode(i.vnode) ? (i.vnode.props as any)?.key : undefined)
+
+const reconcileChildren = (parent: HTMLElement, prev: Instance[], next: VChild[]): Instance[] => {
+  const nextInsts: Instance[] = []
+  const prevByKey = new Map<Key, number>()
+  const used = new Set<number>()
+  let cursor = 0
+
+  for (let i = 0; i < prev.length; i++) {
+    const k = keyOf(prev[i]!)
+    if (k !== undefined) prevByKey.set(k, i)
+  }
+
+  let lastDom: Node | null = null
+
+  for (let i = 0; i < next.length; i++) {
+    const vch: VChild = next[i]!
+    const k = getKey(vch)
+    let matchIndex: number | undefined
+
+    if (k !== undefined) {
+      const idx = prevByKey.get(k)
+      if (idx !== undefined && !used.has(idx)) matchIndex = idx
     } else {
-      children.push(reconcile(p!, n!))
+      while (cursor < prev.length && used.has(cursor)) cursor++
+      if (cursor < prev.length) matchIndex = cursor++
+    }
+
+    let matched: Instance | null = null
+    if (matchIndex !== undefined && matchIndex >= 0 && matchIndex < prev.length) {
+      const cand = prev[matchIndex]
+      if (cand) { matched = cand; used.add(matchIndex) }
+    }
+
+    const inst = commit(parent, matched, vch)
+    nextInsts.push(inst)
+
+    const anchor: ChildNode | null = lastDom ? (lastDom.nextSibling as ChildNode | null) : parent.firstChild
+    if (inst.dom !== anchor) parent.insertBefore(inst.dom, anchor)
+    lastDom = inst.dom
+  }
+
+  for (let i = 0; i < prev.length; i++) {
+    if (!used.has(i)) {
+      const d = prev[i]!.dom
+      if (d.parentNode === parent) parent.removeChild(d)
     }
   }
 
-  return Object.assign(prev, { props: next.props, children })
+  return nextInsts
 }
-
-export const fromElement = <E extends HTMLElement>(
-  element: E,
-  props: DOMProps<E> = {},
-  ...children: MaybeVNode[]
-): VNode => Object.assign(
-    () => element,
-    {
-      tag: element.tagName.toLowerCase() as TagName,
-      props: props as DOMProps<HTMLElement>,
-      children: children.filter(Boolean) as VNode[],
-    }
-  )
 
 export const mount = (root: HTMLElement) => {
-  let prev = fromElement(root)
-  return (...children: MaybeVNode[]) => {
-    prev = reconcile(prev, fromElement(root, {}, ...children))
+  let mounted = false
+  let prevChildren: Instance[] = []
+  return (v: VNode) => {
+    if (!mounted) { root.textContent = ''; mounted = true }
+    prevChildren = reconcileChildren(root, prevChildren, [v])
   }
 }
-
-export const h = <K extends TagName>(t: K, p?: DOMProps<Elem<K>>, ...c: MaybeVNode[]) =>
-  tag(t)(p as any, ...c)

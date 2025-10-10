@@ -1,6 +1,6 @@
 # domlet
 
-Tiny typed DOM runtime. Inspired by noact. No JSX required. No VDOM. Just functions.
+Tiny typed VDOM runtime. Inspired by Noact. No JSX. Just functions.
 
 # Quick start
 
@@ -27,13 +27,13 @@ render()
 
 # API
 
-- `el`: `Proxy` of typed factories `(el.div({ ... }, ...children))`
-- `tag(name)`: returns a typed factory for a specific tag
-- `mount(root)`: creates a function that reconciles into root
-- `fromElement(el, props?, ...children)`: wraps an existing `HTMLElement`
-- Types: `TagName`, `Elem<K>`, `DOMProps<E>`, `VNode<K>`
+- el: typed Proxy of element factories, e.g. el.div({ ... }, ...children)
+- tag(name): create a typed factory for a tag
+- mount(root): returns a function to render a VNode into root
+- Types: TagName, Elem<K>, DOMProps<E>, VNode<K>
 
 # Notes
 
-- Children are `VNodes`; for text use txt: "..." (sugars to `textContent`).
-- Reconciliation is unkeyed (`append`/`remove`/`replace`). Reorders aren’t optimized.
+- nodes are plain objects; DOM is created/patched by the reconciler.
+- Children can be VNode | string | number. txt adds a text child.
+- Keyed diff: use props.key for stable reorders; falls back to index-based diff.
