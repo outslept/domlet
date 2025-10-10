@@ -1,0 +1,19 @@
+{
+  "name": "domlet",
+  "type": "module",
+  "zshy": "src/index.ts",
+  "scripts": {
+    "dev": "esbuild main.ts --bundle --format=esm --outdir=dist --sourcemap --watch --serve=3000 --servedir=.",
+    "build": "esbuild main.ts --bundle --format=esm --outdir=dist --minify --sourcemap=external",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix"
+  },
+  "packageManager": "pnpm@10.15.0",
+  "devDependencies": {
+    "esbuild": "^0.25.10",
+    "eslint": "^9.37.0",
+    "neostandard": "^0.12.2",
+    "typescript": "^5.9.3",
+    "zshy": "^0.4.3"
+  }
+}
