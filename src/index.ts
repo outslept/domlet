@@ -57,7 +57,7 @@ const patchProps = (el: HTMLElement, prev: DOMProps<HTMLElement> = {}, next: DOM
   for (const k in nd) if (pd[k] !== nd[k]) el.dataset[k] = String(nd[k] as any)
 }
 
-const createElement = (v: VNode): HTMLElement => {
+const createElement = (v: VNode) => {
   const el = document.createElement(v.tag)
   const { style = {}, dataset = {}, key: _k, ...rest } = v.props || {}
   Object.assign(el, rest)
@@ -97,8 +97,8 @@ const commit = (parent: Node, prevInst: Instance | null, nextNode: VChild): Inst
   return prevInst
 }
 
-const getKey = (c: VChild): Key | undefined => (isVNode(c) ? c.props?.key : undefined)
-const keyOf = (i: Instance): Key | undefined => (isVNode(i.vnode) ? (i.vnode.props as any)?.key : undefined)
+const getKey = (c: VChild) => (isVNode(c) ? c.props?.key : undefined)
+const keyOf = (i: Instance) => (isVNode(i.vnode) ? (i.vnode.props as any)?.key : undefined)
 
 const reconcileChildren = (parent: HTMLElement, prev: Instance[], next: VChild[]): Instance[] => {
   const nextInsts: Instance[] = []
@@ -114,7 +114,7 @@ const reconcileChildren = (parent: HTMLElement, prev: Instance[], next: VChild[]
   let lastDom: Node | null = null
 
   for (let i = 0; i < next.length; i++) {
-    const vch: VChild = next[i]!
+    const vch = next[i]!
     const k = getKey(vch)
     let matchIndex: number | undefined
 
@@ -135,7 +135,7 @@ const reconcileChildren = (parent: HTMLElement, prev: Instance[], next: VChild[]
     const inst = commit(parent, matched, vch)
     nextInsts.push(inst)
 
-    const anchor: ChildNode | null = lastDom ? (lastDom.nextSibling as ChildNode | null) : parent.firstChild
+    const anchor: ChildNode | null = lastDom ? lastDom.nextSibling : parent.firstChild
     if (inst.dom !== anchor) parent.insertBefore(inst.dom, anchor)
     lastDom = inst.dom
   }
