@@ -5,24 +5,29 @@ Tiny typed VDOM runtime. Inspired by Noact. No JSX. Just functions.
 # Quick start
 
 ```ts
-import { mount } from "./src/index"
-import { el } from "./src/el"
+import { mount } from "./src/index";
+import { el } from "./src/el";
 
-let count = 0
-const root = document.getElementById("app")!
-const mountApp = mount(root)
+let count = 0;
+const root = document.getElementById("app")!;
+const mountApp = mount(root);
 
-const inc = () => { count += 1; render() }
+const inc = () => {
+  count += 1;
+  render();
+};
 
 const App = () =>
   el.div(
     { style: { display: "grid", placeItems: "center", gap: "16px", minHeight: "100svh" } },
     el.div({ style: { fontSize: "64px", fontWeight: "900" }, txt: String(count) }),
     el.button({ onclick: inc, txt: "+1" }),
-  )
+  );
 
-function render() { mountApp(App()) }
-render()
+function render() {
+  mountApp(App());
+}
+render();
 ```
 
 # API

@@ -9,11 +9,11 @@
     "lint": "oxlint",
     "lint:fix": "oxlint --fix"
   },
-  "packageManager": "pnpm@10.15.0",
   "devDependencies": {
     "esbuild": "^0.25.10",
     "oxfmt": "^0.64.0",
     "oxlint": "^1.79.0",
     "typescript": "^5.9.3"
-  }
+  },
+  "packageManager": "pnpm@10.15.0"
 }
