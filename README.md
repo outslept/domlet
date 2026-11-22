@@ -2,15 +2,14 @@
 
 Tiny typed VDOM runtime. Inspired by Noact. No JSX. Just functions.
 
-# Quick start
+## Quick start
 
 ```ts
-import { mount } from "./src/index";
-import { el } from "./src/el";
+import { mount } from "domlet";
+import { el } from "domlet/el";
 
 let count = 0;
-const root = document.getElementById("app")!;
-const mountApp = mount(root);
+const renderApp = mount(document.getElementById("app")!);
 
 const inc = () => {
   count += 1;
@@ -20,25 +19,26 @@ const inc = () => {
 const App = () =>
   el.div(
     { style: { display: "grid", placeItems: "center", gap: "16px", minHeight: "100svh" } },
-    el.div({ style: { fontSize: "64px", fontWeight: "900" }, txt: String(count) }),
+    el.div({ style: { fontSize: "64px", fontWeight: "900" }, txt: count }),
     el.button({ onclick: inc, txt: "+1" }),
   );
 
 function render() {
-  mountApp(App());
+  renderApp(App());
 }
+
 render();
 ```
 
-# API
+## API
 
-- el: typed Proxy of element factories, e.g. el.div({ ... }, ...children)
-- tag(name): create a typed factory for a tag
-- mount(root): returns a function to render a VNode into root
-- Types: TagName, Elem<K>, DOMProps<E>, VNode<K>
+- `el`: typed Proxy of element factories, e.g. `el.div({ ... }, ...children)`
+- `tag(name)`: create a typed factory for a tag
+- `mount(root)`: returns a function to render a `VNode` into `root`
+- Types: `TagName`, `Elem<K>`, `DOMProps<E>`, `VNode<K>`, `VChild`, `MaybeChild`, `Key`
 
-# Notes
+## Notes
 
-- nodes are plain objects; DOM is created/patched by the reconciler.
-- Children can be VNode | string | number. txt adds a text child.
-- Keyed diff: use props.key for stable reorders; falls back to index-based diff.
+- Nodes are plain objects; DOM is created and patched by the reconciler.
+- Children can be `VNode | string | number` (`null`, `undefined`, and `false` are ignored). `txt` prepends a text child (`string | number`).
+- Keyed diff: use `props.key` for stable reorders; falls back to index-based diff.
